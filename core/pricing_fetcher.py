@@ -201,14 +201,14 @@ def _fetch_anthropic() -> list[ModelPricing]:
 # ── OpenAI ──────────────────────────────────────────────────────
 
 OPENAI_KNOWN_PRICING: dict[str, dict] = {
-    "gpt-4o": {"name": "GPT-4o", "input": 2.50, "output": 10.0},
-    "gpt-4o-mini": {"name": "GPT-4o mini", "input": 0.15, "output": 0.60},
-    "gpt-4.1": {"name": "GPT-4.1", "input": 2.0, "output": 8.0},
-    "gpt-4.1-mini": {"name": "GPT-4.1 mini", "input": 0.40, "output": 1.60},
-    "gpt-4.1-nano": {"name": "GPT-4.1 nano", "input": 0.10, "output": 0.40},
-    "o3": {"name": "o3", "input": 2.0, "output": 8.0},
-    "o3-mini": {"name": "o3 mini", "input": 1.10, "output": 4.40},
-    "o4-mini": {"name": "o4 mini", "input": 1.10, "output": 4.40},
+    "gpt-4o": {"name": "GPT-4o", "input": 2.50, "output": 10.0, "cache_read": 1.25},
+    "gpt-4o-mini": {"name": "GPT-4o mini", "input": 0.15, "output": 0.60, "cache_read": 0.075},
+    "gpt-4.1": {"name": "GPT-4.1", "input": 2.0, "output": 8.0, "cache_read": 0.50},
+    "gpt-4.1-mini": {"name": "GPT-4.1 mini", "input": 0.40, "output": 1.60, "cache_read": 0.10},
+    "gpt-4.1-nano": {"name": "GPT-4.1 nano", "input": 0.10, "output": 0.40, "cache_read": 0.025},
+    "o3": {"name": "o3", "input": 2.0, "output": 8.0, "cache_read": 0.50},
+    "o3-mini": {"name": "o3 mini", "input": 1.10, "output": 4.40, "cache_read": 0.275},
+    "o4-mini": {"name": "o4 mini", "input": 1.10, "output": 4.40, "cache_read": 0.275},
 }
 
 
@@ -239,6 +239,7 @@ def _fetch_openai() -> list[ModelPricing]:
             model_name=info["name"],
             input_rate=info["input"],
             output_rate=info["output"],
+            cache_read_rate=info.get("cache_read", 0),
         ))
     return models
 
@@ -246,9 +247,9 @@ def _fetch_openai() -> list[ModelPricing]:
 # ── Google / Gemini ─────────────────────────────────────────────
 
 GEMINI_KNOWN_PRICING: dict[str, dict] = {
-    "gemini-2.5-pro": {"name": "Gemini 2.5 Pro", "input": 1.25, "output": 10.0},
-    "gemini-2.5-flash": {"name": "Gemini 2.5 Flash", "input": 0.15, "output": 0.60},
-    "gemini-2.0-flash": {"name": "Gemini 2.0 Flash", "input": 0.10, "output": 0.40},
+    "gemini-2.5-pro": {"name": "Gemini 2.5 Pro", "input": 1.25, "output": 10.0, "cache_read": 0.3125, "cache_write": 4.50},
+    "gemini-2.5-flash": {"name": "Gemini 2.5 Flash", "input": 0.15, "output": 0.60, "cache_read": 0.0375, "cache_write": 1.00},
+    "gemini-2.0-flash": {"name": "Gemini 2.0 Flash", "input": 0.10, "output": 0.40, "cache_read": 0.025, "cache_write": 1.00},
 }
 
 
@@ -262,5 +263,7 @@ def _fetch_google() -> list[ModelPricing]:
             model_name=info["name"],
             input_rate=info["input"],
             output_rate=info["output"],
+            cache_read_rate=info.get("cache_read", 0),
+            cache_write_rate=info.get("cache_write", 0),
         ))
     return models
