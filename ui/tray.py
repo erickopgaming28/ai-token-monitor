@@ -28,13 +28,13 @@ def _create_icon() -> QIcon:
 
 
 class TrayManager:
-    def __init__(self, aggregator: Aggregator):
+    def __init__(self, aggregator: Aggregator, cost_engine=None, settings=None):
         self._aggregator = aggregator
         self._tray = QSystemTrayIcon()
         self._tray.setIcon(_create_icon())
         self._tray.setToolTip("AI Token Monitor")
 
-        self._popup = PopupPanel(aggregator)
+        self._popup = PopupPanel(aggregator, cost_engine=cost_engine, settings=settings)
         self._paused = False
 
         self._build_menu()

@@ -12,6 +12,9 @@ COLOR_COST = "#a6e3a1"
 COLOR_ACCENT = "#89b4fa"
 COLOR_BORDER = "#45475a"
 COLOR_RED = "#f38ba8"
+COLOR_SAVINGS = "#a6e3a1"   # green — cheaper
+COLOR_EXPENSIVE = "#f38ba8"  # red — more expensive
+COLOR_COMPARE = "#cba6f7"   # purple — comparison accent
 
 DARK_THEME = f"""
 QWidget {{

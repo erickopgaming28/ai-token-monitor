@@ -48,6 +48,8 @@ class AppSettings:
     excluded_paths: list[str] = field(default_factory=list)
     monitored_paths: list[str] = field(default_factory=list)
 
+    comparison_models: list[str] = field(default_factory=list)
+
     def save(self) -> None:
         SETTINGS_PATH.write_text(json.dumps(asdict(self), indent=2), encoding="utf-8")
 

@@ -21,9 +21,11 @@ PERIODS = [
 
 
 class PopupPanel(QWidget):
-    def __init__(self, aggregator: Aggregator, parent: QWidget | None = None):
+    def __init__(self, aggregator: Aggregator, cost_engine=None, settings=None, parent: QWidget | None = None):
         super().__init__(parent)
         self.aggregator = aggregator
+        self._cost_engine = cost_engine
+        self._settings = settings
         self._cards: list[ProjectCard] = []
         self._current_period = "all"
 
@@ -95,7 +97,7 @@ class PopupPanel(QWidget):
         self._stack.addWidget(list_page)
 
         # Page 1: Detail
-        self._detail = DetailPanel()
+        self._detail = DetailPanel(cost_engine=self._cost_engine, settings=self._settings)
         self._detail.back_requested.connect(lambda: self._stack.setCurrentIndex(0))
         self._stack.addWidget(self._detail)
 

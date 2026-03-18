@@ -62,3 +62,29 @@ class CostEngine:
 
     def get_model_rates(self, model_slug: str) -> dict[str, float] | None:
         return self._cache.get(model_slug)
+
+    def compare(
+        self,
+        model_slugs: list[str],
+        input_tokens: int,
+        output_tokens: int,
+        cache_read: int = 0,
+        cache_write: int = 0,
+    ) -> list[CostBreakdown]:
+        """Calculate hypothetical cost for the same tokens across multiple models."""
+        results = []
+        for slug in model_slugs:
+            results.append(self.calculate(slug, input_tokens, output_tokens, cache_read, cache_write))
+        results.sort(key=lambda x: x.total_cost)
+        return results
+
+    def get_all_model_slugs(self) -> list[str]:
+        """Return all model slugs that have pricing."""
+        return list(self._cache.keys())
+
+    def get_model_name(self, model_slug: str) -> str:
+        """Get display name for a model from DB."""
+        row = self.db.conn.execute(
+            "SELECT name FROM models WHERE slug = ?", (model_slug,)
+        ).fetchone()
+        return row["name"] if row else model_slug

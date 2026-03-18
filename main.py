@@ -89,7 +89,7 @@ def main() -> None:
         debounce_ms=settings.debounce_ms,
     )
 
-    tray = TrayManager(aggregator)
+    tray = TrayManager(aggregator, cost_engine=cost_engine, settings=settings)
 
     # Add settings menu item
     from PySide6.QtGui import QAction

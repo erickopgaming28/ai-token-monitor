@@ -6,7 +6,7 @@ from PySide6.QtCore import Qt, QThread, Signal, QObject
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QSpinBox, QCheckBox,
     QPushButton, QTabWidget, QWidget, QComboBox, QTableWidget, QTableWidgetItem,
-    QHeaderView, QMessageBox, QGroupBox, QGridLayout,
+    QHeaderView, QMessageBox, QGroupBox, QGridLayout, QListWidget, QListWidgetItem,
 )
 
 from config.settings import AppSettings, APP_DATA_DIR
@@ -67,6 +67,7 @@ class SettingsDialog(QDialog):
         tabs.addTab(self._general_tab(), "General")
         tabs.addTab(self._detected_tab(), "Detected Tools")
         tabs.addTab(self._pricing_tab(), "Pricing")
+        tabs.addTab(self._compare_tab(), "Compare")
         tabs.addTab(self._custom_tab(), "Custom Models")
         layout.addWidget(tabs)
 
@@ -213,6 +214,58 @@ class SettingsDialog(QDialog):
         self._pricing_status.setText(msg)
         self._load_pricing_table()
 
+    # ── Compare Tab ───────────────────────────────────────────────
+
+    def _compare_tab(self) -> QWidget:
+        w = QWidget()
+        lay = QVBoxLayout(w)
+
+        info = QLabel(
+            "Select models for cost comparison. When viewing a project's detail, "
+            "you'll see an estimate of what it would cost if you had used these "
+            "models instead."
+        )
+        info.setStyleSheet(f"color: {COLOR_TEXT_DIM}; font-size: 12px;")
+        info.setWordWrap(True)
+        lay.addWidget(info)
+
+        self._compare_list = QListWidget()
+        self._compare_list.setSelectionMode(QListWidget.SelectionMode.NoSelection)
+
+        # Load all models with provider name
+        rows = self.db.conn.execute(
+            """SELECT m.slug, m.name, p.name as provider_name
+               FROM models m
+               JOIN providers p ON p.id = m.provider_id
+               ORDER BY p.name, m.name"""
+        ).fetchall()
+
+        selected = set(self.settings.comparison_models)
+
+        for r in rows:
+            item = QListWidgetItem(f"{r['provider_name']}  /  {r['name']}")
+            item.setData(Qt.ItemDataRole.UserRole, r["slug"])
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Checked if r["slug"] in selected else Qt.CheckState.Unchecked)
+            self._compare_list.addItem(item)
+
+        lay.addWidget(self._compare_list)
+
+        hint = QLabel("Tip: select 3-5 models for a clear comparison")
+        hint.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; font-size: 11px;")
+        lay.addWidget(hint)
+
+        return w
+
+    def _get_selected_comparison_models(self) -> list[str]:
+        selected: list[str] = []
+        for i in range(self._compare_list.count()):
+            item = self._compare_list.item(i)
+            if item.checkState() == Qt.CheckState.Checked:
+                slug = item.data(Qt.ItemDataRole.UserRole)
+                selected.append(slug)
+        return selected
+
     # ── Custom Models Tab ────────────────────────────────────────
 
     def _custom_tab(self) -> QWidget:
@@ -349,6 +402,7 @@ class SettingsDialog(QDialog):
         self.settings.claude_base_path = self._claude_path.text()
         self.settings.start_with_windows = self._autostart.isChecked()
         self.settings.log_level = self._log_level.currentText()
+        self.settings.comparison_models = self._get_selected_comparison_models()
         self.settings.save()
 
         self._apply_autostart()
