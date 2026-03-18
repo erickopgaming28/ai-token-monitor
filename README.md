@@ -61,15 +61,15 @@ Claude Code JSONL logs  ──►  Scanner (FileWatcher + Polling)
 ```
 ┌──────────────────────────────────┐
 │ AI Token Monitor   [All Time ▼]  │
-│ $321.78                          │
-│ 12 projects                      │
+│ $48.52                           │
+│ 5 projects                       │
 ├──────────────────────────────────┤
-│ botones_mando_juego      $123.07 │
+│ my-web-app                $23.07 │
 │ 372.4K tokens                    │
 │ [█ IN █████████████ OUT ████████]│
 │ IN: 3.8K  OUT: 368.6K           │
 ├──────────────────────────────────┤
-│ bolt_twitch              $110.78 │
+│ api-server                $15.78 │
 │ 269.1K tokens                    │
 │ [█ IN ████████████ OUT █████████]│
 │ IN: 8.1K  OUT: 261.0K           │
@@ -80,20 +80,20 @@ Claude Code JSONL logs  ──►  Scanner (FileWatcher + Polling)
 ```
 ┌──────────────────────────────────┐
 │ <- Back                          │
-│ PROJECT: botones_mando_juego     │
-│ Path: C:/Users/.../proyecto      │
+│ PROJECT: my-web-app              │
+│ Path: D:/projects/my-web-app     │
 │ Last activity: 2m ago            │
 ├──────────────────────────────────┤
 │ TOKENS        IN         OUT     │
 │ Input:       3,782               │
 │ Output:    368,648               │
-│ Cache read: 39,587,440           │
-│ Cache write: 2,537,338           │
+│ Cache read: 12,450,200           │
+│ Cache write: 1,230,500           │
 ├──────────────────────────────────┤
 │ COST BY PROVIDER                 │
-│ Claude Code:          $123.07 [E]│
-│   Sonnet 4:   $120.50           │
-│   Haiku 4.5:    $2.57           │
+│ Claude Code:           $23.07 [E]│
+│   Sonnet 4:    $21.30           │
+│   Haiku 4.5:    $1.77           │
 ├──────────────────────────────────┤
 │ [E] = Exact   [~] = Estimated   │
 │ [Open Folder]                    │
