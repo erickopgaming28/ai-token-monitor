@@ -1,0 +1,33 @@
+{
+  "providers": [
+    {"name": "Claude Code", "slug": "claude_code"},
+    {"name": "OpenAI", "slug": "openai"},
+    {"name": "Gemini", "slug": "gemini"}
+  ],
+  "models": [
+    {"provider": "claude_code", "name": "Claude Opus 4", "slug": "claude-opus-4-6"},
+    {"provider": "claude_code", "name": "Claude Sonnet 4", "slug": "claude-sonnet-4-6"},
+    {"provider": "claude_code", "name": "Claude Sonnet 3.5", "slug": "claude-3-5-sonnet-20241022"},
+    {"provider": "claude_code", "name": "Claude Haiku 3.5", "slug": "claude-3-5-haiku-latest"},
+    {"provider": "claude_code", "name": "Claude Haiku 4.5", "slug": "claude-haiku-4-5-20251001"},
+    {"provider": "openai", "name": "GPT-4o", "slug": "gpt-4o"},
+    {"provider": "openai", "name": "GPT-4o mini", "slug": "gpt-4o-mini"},
+    {"provider": "openai", "name": "GPT-4.1", "slug": "gpt-4.1"},
+    {"provider": "openai", "name": "GPT-4.1 mini", "slug": "gpt-4.1-mini"},
+    {"provider": "gemini", "name": "Gemini 2.5 Pro", "slug": "gemini-2.5-pro"},
+    {"provider": "gemini", "name": "Gemini 2.5 Flash", "slug": "gemini-2.5-flash"}
+  ],
+  "pricing": [
+    {"model": "claude-opus-4-6", "input": 15.0, "output": 75.0, "cache_read": 1.50, "cache_write": 18.75},
+    {"model": "claude-sonnet-4-6", "input": 3.0, "output": 15.0, "cache_read": 0.30, "cache_write": 3.75},
+    {"model": "claude-3-5-sonnet-20241022", "input": 3.0, "output": 15.0, "cache_read": 0.30, "cache_write": 3.75},
+    {"model": "claude-3-5-haiku-latest", "input": 0.80, "output": 4.0, "cache_read": 0.08, "cache_write": 1.0},
+    {"model": "claude-haiku-4-5-20251001", "input": 1.0, "output": 5.0, "cache_read": 0.10, "cache_write": 1.25},
+    {"model": "gpt-4o", "input": 2.50, "output": 10.0, "cache_read": 0, "cache_write": 0},
+    {"model": "gpt-4o-mini", "input": 0.15, "output": 0.60, "cache_read": 0, "cache_write": 0},
+    {"model": "gpt-4.1", "input": 2.0, "output": 8.0, "cache_read": 0, "cache_write": 0},
+    {"model": "gpt-4.1-mini", "input": 0.40, "output": 1.60, "cache_read": 0, "cache_write": 0},
+    {"model": "gemini-2.5-pro", "input": 1.25, "output": 10.0, "cache_read": 0, "cache_write": 0},
+    {"model": "gemini-2.5-flash", "input": 0.15, "output": 0.60, "cache_read": 0, "cache_write": 0}
+  ]
+}
