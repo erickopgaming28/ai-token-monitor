@@ -200,9 +200,17 @@ class DetailPanel(QWidget):
                 w.deleteLater()
 
     def _open_folder(self) -> None:
-        path = self._project_path.replace("/", "\\")
-        if os.path.isdir(path):
-            subprocess.Popen(["explorer", path])
+        import sys as _sys
+        if _sys.platform == "win32":
+            path = self._project_path.replace("/", "\\")
+            if os.path.isdir(path):
+                subprocess.Popen(["explorer", path])
+        elif _sys.platform == "darwin":
+            if os.path.isdir(self._project_path):
+                subprocess.Popen(["open", self._project_path])
+        else:
+            if os.path.isdir(self._project_path):
+                subprocess.Popen(["xdg-open", self._project_path])
 
     def _relative_time(ts: str) -> str:
         return _relative_time(ts)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 
@@ -11,8 +12,13 @@ def _default_claude_base() -> str:
 
 
 def _app_data_dir() -> Path:
-    base = os.environ.get("LOCALAPPDATA", str(Path.home() / "AppData" / "Local"))
-    d = Path(base) / "AITokenMonitor"
+    if sys.platform == "darwin":
+        base = Path.home() / "Library" / "Application Support"
+    elif sys.platform == "win32":
+        base = Path(os.environ.get("LOCALAPPDATA", str(Path.home() / "AppData" / "Local")))
+    else:
+        base = Path(os.environ.get("XDG_DATA_HOME", str(Path.home() / ".local" / "share")))
+    d = base / "AITokenMonitor"
     d.mkdir(parents=True, exist_ok=True)
     return d
 

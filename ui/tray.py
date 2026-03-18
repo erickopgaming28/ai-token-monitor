@@ -18,7 +18,9 @@ def _create_icon() -> QIcon:
     painter.setPen(QColor("#1e1e2e"))
     painter.drawRoundedRect(4, 4, 56, 56, 12, 12)
     painter.setPen(QColor("#1e1e2e"))
-    font = QFont("Segoe UI", 24, QFont.Weight.Bold)
+    import sys as _sys
+    family = "Segoe UI" if _sys.platform == "win32" else "SF Pro Display" if _sys.platform == "darwin" else "Noto Sans"
+    font = QFont(family, 24, QFont.Weight.Bold)
     painter.setFont(font)
     painter.drawText(px.rect(), 0x0084, "AI")  # AlignCenter
     painter.end()

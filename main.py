@@ -5,9 +5,9 @@ import sys
 from pathlib import Path
 
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import QCoreApplication
+from PySide6.QtCore import QCoreApplication, QTimer
 
-from config.settings import AppSettings, DB_PATH
+from config.settings import AppSettings, DB_PATH, APP_DATA_DIR
 from core.aggregator import Aggregator
 from core.cost_engine import CostEngine
 from core.event_bus import EventBus
@@ -25,6 +25,32 @@ def setup_logging(level: str) -> None:
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         datefmt="%H:%M:%S",
     )
+
+
+def _run_startup_tasks(db: Database, cost_engine: CostEngine) -> None:
+    """Run auto-detection and pricing update in background."""
+    logger = logging.getLogger("startup")
+
+    # Auto-detect installed AI tools
+    try:
+        from core.ai_detector import detect_all
+        tools = detect_all()
+        if tools:
+            logger.info("Detected %d AI tools: %s", len(tools), ", ".join(t.tool_name for t in tools))
+        else:
+            logger.info("No AI tools auto-detected")
+    except Exception as e:
+        logger.warning("AI detection failed: %s", e)
+
+    # Update pricing (non-blocking, cached for 24h)
+    try:
+        from core.pricing_fetcher import PricingFetcher
+        fetcher = PricingFetcher(db, APP_DATA_DIR)
+        fetcher.update_all(force=False)
+        cost_engine.reload()
+        logger.info("Pricing updated")
+    except Exception as e:
+        logger.debug("Pricing update skipped: %s", e)
 
 
 def main() -> None:
@@ -45,6 +71,9 @@ def main() -> None:
     event_bus = EventBus.instance()
     cost_engine = CostEngine(db)
     aggregator = Aggregator(db, cost_engine)
+
+    # Run startup tasks (detection + pricing) after event loop starts
+    QTimer.singleShot(500, lambda: _run_startup_tasks(db, cost_engine))
 
     adapters = []
     if settings.claude_code_enabled:

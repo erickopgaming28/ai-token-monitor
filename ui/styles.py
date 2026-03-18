@@ -17,7 +17,7 @@ DARK_THEME = f"""
 QWidget {{
     background-color: {COLOR_BG};
     color: {COLOR_TEXT};
-    font-family: "Segoe UI", "Noto Sans", sans-serif;
+    font-family: "Segoe UI", "SF Pro Display", "Noto Sans", sans-serif;
     font-size: 13px;
 }}
 QWidget#popup {{
