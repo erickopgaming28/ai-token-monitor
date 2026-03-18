@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QSpinBox, QCheckBox,
     QPushButton, QTabWidget, QWidget, QComboBox, QTableWidget, QTableWidgetItem,
     QHeaderView, QMessageBox, QGroupBox, QGridLayout, QListWidget, QListWidgetItem,
+    QFileDialog,
 )
 
 from config.settings import AppSettings, APP_DATA_DIR
@@ -15,6 +16,7 @@ from db.database import Database
 from ui.styles import (
     DARK_THEME, COLOR_BG, COLOR_BG_CARD, COLOR_TEXT, COLOR_BORDER,
     COLOR_ACCENT, COLOR_COST, COLOR_TEXT_DIM, COLOR_TEXT_MUTED,
+    COLOR_SAVINGS, COLOR_EXPENSIVE,
 )
 
 APP_NAME = "AITokenMonitor"
@@ -55,8 +57,9 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.settings = settings
         self.db = db
+        self._detected_tools = []
         self.setWindowTitle("AI Token Monitor — Settings")
-        self.setFixedSize(540, 520)
+        self.setFixedSize(560, 540)
         self.setStyleSheet(DARK_THEME)
         self._build_ui()
 
@@ -65,7 +68,7 @@ class SettingsDialog(QDialog):
 
         tabs = QTabWidget()
         tabs.addTab(self._general_tab(), "General")
-        tabs.addTab(self._detected_tab(), "Detected Tools")
+        tabs.addTab(self._providers_tab(), "Providers")
         tabs.addTab(self._pricing_tab(), "Pricing")
         tabs.addTab(self._compare_tab(), "Compare")
         tabs.addTab(self._custom_tab(), "Custom Models")
@@ -94,12 +97,13 @@ class SettingsDialog(QDialog):
         self._scan_interval.setValue(self.settings.scan_interval_seconds)
         lay.addLayout(self._row("Scan interval:", self._scan_interval))
 
-        self._claude_path = QLineEdit(self.settings.claude_base_path)
-        lay.addLayout(self._row("Claude logs path:", self._claude_path))
-
         self._autostart = QCheckBox("Start with system")
         self._autostart.setChecked(self.settings.start_with_windows)
         lay.addWidget(self._autostart)
+
+        self._auto_detect = QCheckBox("Auto-detect AI tools on startup")
+        self._auto_detect.setChecked(self.settings.auto_detect_providers)
+        lay.addWidget(self._auto_detect)
 
         self._log_level = QComboBox()
         self._log_level.addItems(["DEBUG", "INFO", "WARNING", "ERROR"])
@@ -109,31 +113,139 @@ class SettingsDialog(QDialog):
         lay.addStretch()
         return w
 
-    # ── Detected Tools Tab ───────────────────────────────────────
+    # ── Providers Tab ────────────────────────────────────────────
 
-    def _detected_tab(self) -> QWidget:
+    def _providers_tab(self) -> QWidget:
         w = QWidget()
         lay = QVBoxLayout(w)
 
-        info = QLabel("AI tools detected on this system:")
-        info.setStyleSheet(f"color: {COLOR_TEXT_DIM}; font-size: 12px;")
-        lay.addWidget(info)
+        # Detected section
+        det_group = QGroupBox("Auto-Detected")
+        det_lay = QVBoxLayout(det_group)
 
-        self._detected_table = QTableWidget()
-        self._detected_table.setColumnCount(4)
-        self._detected_table.setHorizontalHeaderLabels(["Tool", "Provider", "Version", "Method"])
-        self._detected_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        for col in range(1, 4):
-            self._detected_table.horizontalHeader().setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
-        self._detected_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        lay.addWidget(self._detected_table)
+        info = QLabel("AI tools found on this system. Uncheck to disable.")
+        info.setStyleSheet(f"color: {COLOR_TEXT_DIM}; font-size: 11px;")
+        info.setWordWrap(True)
+        det_lay.addWidget(info)
 
-        rescan_btn = QPushButton("Rescan")
+        self._provider_table = QTableWidget()
+        self._provider_table.setColumnCount(4)
+        self._provider_table.setHorizontalHeaderLabels(["Enabled", "Provider", "Log Path", "Status"])
+        self._provider_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self._provider_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self._provider_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self._provider_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        self._provider_table.setFixedHeight(160)
+        det_lay.addWidget(self._provider_table)
+
+        rescan_btn = QPushButton("Rescan System")
         rescan_btn.clicked.connect(self._run_detection)
-        lay.addWidget(rescan_btn)
+        det_lay.addWidget(rescan_btn)
 
+        lay.addWidget(det_group)
+
+        # Manual add section
+        manual_group = QGroupBox("Add Provider Manually")
+        manual_lay = QGridLayout(manual_group)
+
+        manual_lay.addWidget(QLabel("Provider:"), 0, 0)
+        self._manual_provider = QComboBox()
+        self._refresh_manual_provider_combo()
+        manual_lay.addWidget(self._manual_provider, 0, 1)
+
+        manual_lay.addWidget(QLabel("Log path:"), 1, 0)
+        path_row = QHBoxLayout()
+        self._manual_path = QLineEdit()
+        self._manual_path.setPlaceholderText("Path to log directory...")
+        path_row.addWidget(self._manual_path)
+        browse_btn = QPushButton("Browse")
+        browse_btn.setFixedWidth(60)
+        browse_btn.clicked.connect(self._browse_path)
+        path_row.addWidget(browse_btn)
+        manual_lay.addLayout(path_row, 1, 1)
+
+        add_btn = QPushButton("Add Provider Path")
+        add_btn.clicked.connect(self._add_manual_provider)
+        manual_lay.addWidget(add_btn, 2, 1)
+
+        lay.addWidget(manual_group)
+
+        # Manual paths list
+        self._manual_table = QTableWidget()
+        self._manual_table.setColumnCount(3)
+        self._manual_table.setHorizontalHeaderLabels(["Provider", "Path", ""])
+        self._manual_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self._manual_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self._manual_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        self._manual_table.setFixedHeight(100)
+        self._load_manual_paths()
+        lay.addWidget(self._manual_table)
+
+        # Run detection on open
         self._run_detection()
+
         return w
+
+    def _refresh_manual_provider_combo(self) -> None:
+        self._manual_provider.clear()
+        # Common providers + all from DB
+        known = [
+            ("Claude Code", "claude_code"),
+            ("OpenAI / Codex", "openai"),
+            ("Gemini CLI", "gemini"),
+            ("Cursor", "cursor"),
+            ("Aider", "aider"),
+            ("Continue", "continue_dev"),
+        ]
+        seen = set()
+        for name, slug in known:
+            self._manual_provider.addItem(f"{name} ({slug})", slug)
+            seen.add(slug)
+        # Add any DB providers not in known list
+        rows = self.db.conn.execute("SELECT slug, name FROM providers ORDER BY name").fetchall()
+        for r in rows:
+            if r["slug"] not in seen:
+                self._manual_provider.addItem(f"{r['name']} ({r['slug']})", r["slug"])
+
+    def _browse_path(self) -> None:
+        from pathlib import Path
+        start = str(Path.home())
+        path = QFileDialog.getExistingDirectory(self, "Select log directory", start)
+        if path:
+            self._manual_path.setText(path)
+
+    def _add_manual_provider(self) -> None:
+        slug = self._manual_provider.currentData()
+        path = self._manual_path.text().strip()
+        if not slug or not path:
+            QMessageBox.warning(self, "Error", "Select a provider and enter a path.")
+            return
+        from pathlib import Path as P
+        if not P(path).exists():
+            QMessageBox.warning(self, "Error", f"Path does not exist:\n{path}")
+            return
+        self.settings.manual_provider_paths[slug] = path
+        self._manual_path.clear()
+        self._load_manual_paths()
+
+    def _load_manual_paths(self) -> None:
+        paths = self.settings.manual_provider_paths
+        self._manual_table.setRowCount(len(paths))
+        for i, (slug, path) in enumerate(paths.items()):
+            self._manual_table.setItem(i, 0, QTableWidgetItem(slug))
+            path_item = QTableWidgetItem(path)
+            path_item.setFlags(path_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self._manual_table.setItem(i, 1, path_item)
+
+            remove_btn = QPushButton("X")
+            remove_btn.setFixedWidth(30)
+            remove_btn.setStyleSheet(f"color: {COLOR_EXPENSIVE}; font-weight: bold;")
+            remove_btn.clicked.connect(lambda checked, s=slug: self._remove_manual(s))
+            self._manual_table.setCellWidget(i, 2, remove_btn)
+
+    def _remove_manual(self, slug: str) -> None:
+        self.settings.manual_provider_paths.pop(slug, None)
+        self._load_manual_paths()
 
     def _run_detection(self) -> None:
         self._det_thread = QThread()
@@ -145,17 +257,63 @@ class SettingsDialog(QDialog):
         self._det_thread.start()
 
     def _on_detection_done(self, tools: list) -> None:
-        self._detected_table.setRowCount(len(tools))
+        self._detected_tools = tools
+        self._provider_table.setRowCount(len(tools))
+        disabled = set(self.settings.disabled_providers)
+
         for i, tool in enumerate(tools):
-            self._detected_table.setItem(i, 0, QTableWidgetItem(tool.tool_name))
-            self._detected_table.setItem(i, 1, QTableWidgetItem(tool.provider_name))
-            self._detected_table.setItem(i, 2, QTableWidgetItem(tool.version or "—"))
-            self._detected_table.setItem(i, 3, QTableWidgetItem(tool.detection_method))
+            # Checkbox
+            chk = QCheckBox()
+            chk.setChecked(tool.provider_slug not in disabled)
+            chk_widget = QWidget()
+            chk_lay = QHBoxLayout(chk_widget)
+            chk_lay.addWidget(chk)
+            chk_lay.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            chk_lay.setContentsMargins(0, 0, 0, 0)
+            self._provider_table.setCellWidget(i, 0, chk_widget)
+
+            # Provider name
+            name_item = QTableWidgetItem(f"{tool.tool_name}")
+            name_item.setFlags(name_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self._provider_table.setItem(i, 1, name_item)
+
+            # Log path
+            path_text = tool.log_path or "—"
+            path_item = QTableWidgetItem(path_text)
+            path_item.setFlags(path_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            if not tool.has_logs:
+                path_item.setForeground(Qt.GlobalColor.gray)
+            self._provider_table.setItem(i, 2, path_item)
+
+            # Status
+            if tool.has_logs:
+                status = "logs found"
+                color = COLOR_SAVINGS
+            elif tool.log_path:
+                status = "no logs yet"
+                color = COLOR_TEXT_MUTED
+            else:
+                status = "cli only"
+                color = COLOR_TEXT_MUTED
+            status_item = QTableWidgetItem(status)
+            status_item.setFlags(status_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self._provider_table.setItem(i, 3, status_item)
+
         if not tools:
-            self._detected_table.setRowCount(1)
-            item = QTableWidgetItem("No AI tools detected")
+            self._provider_table.setRowCount(1)
+            item = QTableWidgetItem("No AI tools detected on this system")
             item.setForeground(Qt.GlobalColor.gray)
-            self._detected_table.setItem(0, 0, item)
+            self._provider_table.setItem(0, 1, item)
+
+    def _get_disabled_providers(self) -> list[str]:
+        disabled: list[str] = []
+        for i, tool in enumerate(self._detected_tools):
+            widget = self._provider_table.cellWidget(i, 0)
+            if widget:
+                chk = widget.findChild(QCheckBox)
+                if chk and not chk.isChecked():
+                    disabled.append(tool.provider_slug)
+        return disabled
 
     # ── Pricing Tab ──────────────────────────────────────────────
 
@@ -232,7 +390,6 @@ class SettingsDialog(QDialog):
         self._compare_list = QListWidget()
         self._compare_list.setSelectionMode(QListWidget.SelectionMode.NoSelection)
 
-        # Load all models with provider name
         rows = self.db.conn.execute(
             """SELECT m.slug, m.name, p.name as provider_name
                FROM models m
@@ -349,6 +506,7 @@ class SettingsDialog(QDialog):
         self._new_prov_name.clear()
         self._new_prov_slug.clear()
         self._refresh_provider_combo()
+        self._refresh_manual_provider_combo()
         QMessageBox.information(self, "Done", f"Provider '{name}' added.")
 
     def _add_model(self) -> None:
@@ -399,9 +557,10 @@ class SettingsDialog(QDialog):
 
     def _save(self) -> None:
         self.settings.scan_interval_seconds = self._scan_interval.value()
-        self.settings.claude_base_path = self._claude_path.text()
         self.settings.start_with_windows = self._autostart.isChecked()
+        self.settings.auto_detect_providers = self._auto_detect.isChecked()
         self.settings.log_level = self._log_level.currentText()
+        self.settings.disabled_providers = self._get_disabled_providers()
         self.settings.comparison_models = self._get_selected_comparison_models()
         self.settings.save()
 

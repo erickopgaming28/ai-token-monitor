@@ -41,9 +41,15 @@ class AppSettings:
     start_with_windows: bool = False
     log_level: str = "INFO"
 
-    claude_code_enabled: bool = True
-    openai_enabled: bool = False
-    gemini_enabled: bool = False
+    # Auto-detection: if True, scan system for AI tools on startup
+    auto_detect_providers: bool = True
+
+    # Manual provider paths: slug -> log_path
+    # These override auto-detected paths or add providers that can't be auto-detected
+    manual_provider_paths: dict[str, str] = field(default_factory=dict)
+
+    # Providers explicitly disabled by user (won't load even if detected)
+    disabled_providers: list[str] = field(default_factory=list)
 
     excluded_paths: list[str] = field(default_factory=list)
     monitored_paths: list[str] = field(default_factory=list)
