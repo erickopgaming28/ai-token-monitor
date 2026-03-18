@@ -254,25 +254,44 @@ class DetailPanel(QWidget):
             # Row widget
             row_w = QWidget()
             row_w.setStyleSheet(f"background: {COLOR_BG_CARD}; border-radius: 4px;")
-            row_h = QHBoxLayout(row_w)
-            row_h.setContentsMargins(8, 4, 8, 4)
+            row_lay = QVBoxLayout(row_w)
+            row_lay.setContentsMargins(8, 4, 8, 4)
+            row_lay.setSpacing(1)
+
+            # Top line: model name | cost | diff
+            top_row = QHBoxLayout()
+            top_row.setSpacing(6)
 
             name_lbl = QLabel(f"{model_name}")
             name_lbl.setStyleSheet(f"font-size: 12px; color: {COLOR_COMPARE}; background: transparent;")
-            row_h.addWidget(name_lbl)
+            top_row.addWidget(name_lbl)
 
-            row_h.addStretch()
+            top_row.addStretch()
 
             cost_lbl = QLabel(fmt_cost(hypo_cost))
             cost_lbl.setStyleSheet(f"font-size: 12px; font-weight: bold; color: {COLOR_TEXT_DIM}; background: transparent;")
-            row_h.addWidget(cost_lbl)
+            top_row.addWidget(cost_lbl)
 
             diff_lbl = QLabel(f" {arrow}{diff_text}")
             diff_lbl.setStyleSheet(f"font-size: 11px; color: {diff_color}; background: transparent;")
-            row_h.addWidget(diff_lbl)
+            top_row.addWidget(diff_lbl)
+
+            row_lay.addLayout(top_row)
+
+            # Bottom line: rates per million
+            rates = self._cost_engine.get_model_rates(cb.model_slug)
+            if rates:
+                rate_parts = [f"in: ${rates['input']}/M", f"out: ${rates['output']}/M"]
+                if rates.get("cache_read", 0) > 0:
+                    rate_parts.append(f"cache_r: ${rates['cache_read']}/M")
+                if rates.get("cache_write", 0) > 0:
+                    rate_parts.append(f"cache_w: ${rates['cache_write']}/M")
+                rate_text = "  ·  ".join(rate_parts)
+                rate_lbl = QLabel(rate_text)
+                rate_lbl.setStyleSheet(f"font-size: 10px; color: {COLOR_TEXT_MUTED}; background: transparent;")
+                row_lay.addWidget(rate_lbl)
 
             # Tooltip with formula
-            rates = self._cost_engine.get_model_rates(cb.model_slug)
             if rates:
                 tip = (
                     f"Formula: (input × ${rates['input']}/M) + (output × ${rates['output']}/M)"
